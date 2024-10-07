@@ -36,18 +36,17 @@ def handle_client(conn, addr, game):
                 game.vote_counter += 1
                 print(game.vote_counter)
                 if game.vote_counter == 4:
-                    game.remove_player(1)
-                    game.vote_counter = 0
-                
+                    game.remove_player(1)                
                     
             # Round Two of voting out a player
             if msg.split()[0] == "VOTE2":
-                game.remove_choices.append(int(msg.split(" ")[1]))
+                game.remove_choices[int(msg.split(" ")[1])] += 1
                 message = f"You have voted for: " + game.player_array[int(msg.split(" ")[1])].name
                 conn.send(message.encode(FORMAT))
                 game.vote_counter += 1
+                print(game.vote_counter)
                 if game.vote_counter == 3:
-                    game.remove_player(1)
+                    game.remove_player(2)
             
             if msg == DISCONNECT_MESSAGE:
                 connected = False   
@@ -129,6 +128,10 @@ class GoldenBalls:
             
         self.show_balls_to_players()
 
+        # Send "VOTE" only once after all players' balls are sent
+        for client in clients:
+            client.send("VOTE1".encode(FORMAT))   
+
     def round_two(self):
         
         self.repopulate()
@@ -143,6 +146,10 @@ class GoldenBalls:
             print(f"{i} | {balls}")
            
         self.show_balls_to_players()
+
+        # Send "VOTE" only once after all players' balls are sent
+        for client in clients:
+            client.send("VOTE2".encode(FORMAT))   
         
     def bin_or_win(self):
         
@@ -203,6 +210,9 @@ class GoldenBalls:
         self.player_array.remove(self.player_array[most_voted_player])
         del clients[most_voted_player]
 
+        self.remove_choices = defaultdict(int)
+        self.vote_counter = 0
+
         if round == 1:
             self.round_two()
         if round == 2:
@@ -226,10 +236,7 @@ class GoldenBalls:
                     message = f"{b_player.name}'s balls:\t{b_player.balls[0]} {b_player.balls[1]}\n"
                 clients[i].send(message.encode(FORMAT))
 
-        time.sleep(0.5)
-        # Send "VOTE" only once after all players' balls are sent
-        for client in clients:
-            client.send("VOTE".encode(FORMAT))       
+        time.sleep(0.5)    
                 
 print("[STARTING] Server is starting...")
 start()

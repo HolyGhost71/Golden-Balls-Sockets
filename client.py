@@ -22,10 +22,16 @@ def receive_message():
     while True:
         command = client.recv(2048).decode(FORMAT)
 
-        if command == "VOTE":
+        if command == "VOTE1":
             round_one_vote = input("Who would you like to remove: ")
             message = f"VOTE1 {round_one_vote}"
             send(message)
+
+        elif command == "VOTE2":
+            round_one_vote = input("Who would you like to remove: ")
+            message = f"VOTE2 {round_one_vote}"
+            send(message)
+
         else:
             print(command)
 
