@@ -8,10 +8,6 @@ DISCONNECT_MESSAGE = "!DISCONNECT"
 SERVER = socket.gethostbyname(socket.gethostname())
 ADDR = (SERVER, PORT)
 
-client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client.connect(ADDR)
-print("Connected!")
-
 def send(msg):
     message = msg.encode(FORMAT)
     msg_length = len(message)
@@ -21,7 +17,7 @@ def send(msg):
     client.send(message)
     print(client.recv(2048).decode(FORMAT))
     
-def receieve_message():
+def receive_message():
     while True:
         
         command = client.recv(2048).decode(FORMAT)
@@ -34,7 +30,8 @@ def receieve_message():
         else:
             print(command)
             
-    
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client.connect(ADDR)
+print("Connected!")
 
-
-receieve_message()
+receive_message()
