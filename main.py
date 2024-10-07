@@ -121,6 +121,8 @@ class GoldenBalls:
             print(f"{i} | {balls}")
             
         self.show_balls_to_players()
+        for client in clients:
+            client.send("VOTE".encode(FORMAT))
 
     def round_two(self):
         
@@ -215,9 +217,5 @@ class GoldenBalls:
                     message = f"{b_player.name}'s balls:\t{b_player.balls[0]} {b_player.balls[1]}\n"
                 clients[i].send(message.encode(FORMAT))
                 
-        for client in clients:
-            client.send("VOTE".encode(FORMAT))
-
-
 print("[STARTING] Server is starting...")
 start()

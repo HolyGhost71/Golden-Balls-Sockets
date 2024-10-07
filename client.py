@@ -19,16 +19,15 @@ def send(msg):
     
 def receive_message():
     while True:
-        
         command = client.recv(2048).decode(FORMAT)
-            
+        
+        if command != "VOTE":
+            print(command)
+        
         if command == "VOTE":
             round_one_vote = input("Who would you like to remove: ")
-            message = ("VOTE1 "+round_one_vote)
+            message = f"VOTE1 {round_one_vote}"
             send(message)
-            
-        else:
-            print(command)
             
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect(ADDR)
