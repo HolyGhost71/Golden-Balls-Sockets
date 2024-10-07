@@ -4,6 +4,7 @@ import random
 import socket 
 import subprocess
 import threading
+import time
 
 HEADER = 64
 PORT = 5050
@@ -25,27 +26,31 @@ def handle_client(conn, addr, game):
         if msg_length:
             msg_length = int(msg_length)
             msg = conn.recv(msg_length).decode(FORMAT)
+            print(f"[{addr}] {msg}")   
             
             # Round One of voting out a player
             if msg.split()[0] == "VOTE1":
                 game.remove_choices[int(msg.split(" ")[1])] += 1
                 message = f"You have voted for: " + game.player_array[int(msg.split(" ")[1])].name
                 conn.send(message.encode(FORMAT))
-                if len(game.remove_choices) == 4:
+                game.vote_counter += 1
+                print(game.vote_counter)
+                if game.vote_counter == 4:
                     game.remove_player(1)
+                    game.vote_counter = 0
+                
                     
             # Round Two of voting out a player
             if msg.split()[0] == "VOTE2":
                 game.remove_choices.append(int(msg.split(" ")[1]))
                 message = f"You have voted for: " + game.player_array[int(msg.split(" ")[1])].name
                 conn.send(message.encode(FORMAT))
-                if len(game.remove_choices) == 4:
-                    game.remove_player(2)
+                game.vote_counter += 1
+                if game.vote_counter == 3:
+                    game.remove_player(1)
             
             if msg == DISCONNECT_MESSAGE:
-                connected = False
-
-            print(f"[{addr}] {msg}")      
+                connected = False   
 
     conn.close()
         
@@ -58,6 +63,7 @@ def start():
     server.listen()
     print(f"[LISTENING] Server is listening on {SERVER}\n")
 
+    # Open Clients
     for i in range (4):
         subprocess.Popen(['start', 'python', 'client.py'], shell=True)
 
@@ -106,6 +112,7 @@ class GoldenBalls:
         random.shuffle(self.balls_in_play)
         self.total = 0
         self.remove_choices = defaultdict(int)
+        self.vote_counter = 0
         
     def concat(self, list):
         message = ""
@@ -121,8 +128,6 @@ class GoldenBalls:
             print(f"{i} | {balls}")
             
         self.show_balls_to_players()
-        for client in clients:
-            client.send("VOTE".encode(FORMAT))
 
     def round_two(self):
         
@@ -191,9 +196,13 @@ class GoldenBalls:
     def remove_player(self, round):
         global clients
                 
-        self.player_array.remove(self.player_array[current])
-        clients.remove(clients[current])
-        
+        print("Removing a player...")
+
+        most_voted_player = max(self.remove_choices, key=self.remove_choices.get)
+        print("Most voted player is player: " , most_voted_player, "/ " + self.player_array[most_voted_player].name)
+        self.player_array.remove(self.player_array[most_voted_player])
+        del clients[most_voted_player]
+
         if round == 1:
             self.round_two()
         if round == 2:
@@ -216,6 +225,11 @@ class GoldenBalls:
                 else:
                     message = f"{b_player.name}'s balls:\t{b_player.balls[0]} {b_player.balls[1]}\n"
                 clients[i].send(message.encode(FORMAT))
+
+        time.sleep(0.5)
+        # Send "VOTE" only once after all players' balls are sent
+        for client in clients:
+            client.send("VOTE".encode(FORMAT))       
                 
 print("[STARTING] Server is starting...")
 start()

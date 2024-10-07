@@ -15,22 +15,24 @@ def send(msg):
     send_length += b' ' * (HEADER - len(send_length))
     client.send(send_length)
     client.send(message)
+    # Await a response after sending the message
     print(client.recv(2048).decode(FORMAT))
     
 def receive_message():
     while True:
         command = client.recv(2048).decode(FORMAT)
-        
-        if command != "VOTE":
-            print(command)
-        
+
         if command == "VOTE":
             round_one_vote = input("Who would you like to remove: ")
             message = f"VOTE1 {round_one_vote}"
             send(message)
-            
+        else:
+            print(command)
+
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect(ADDR)
 print("Connected!")
 
-receive_message()
+# Start the receiving thread
+receive_thread = threading.Thread(target=receive_message)
+receive_thread.start()
