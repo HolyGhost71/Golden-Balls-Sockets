@@ -1,5 +1,8 @@
+from collections import defaultdict
+import os
 import random
 import socket 
+import subprocess
 import threading
 
 HEADER = 64
@@ -23,16 +26,20 @@ def handle_client(conn, addr, game):
             msg_length = int(msg_length)
             msg = conn.recv(msg_length).decode(FORMAT)
             
+            # Round One of voting out a player
             if msg.split()[0] == "VOTE1":
-                game.guesses.append(msg.split(" ")[1])
-                message = f"You have voted for: " + game.player_array[msg.split(" ")[1]]
+                game.remove_choices[int(msg.split(" ")[1])] += 1
+                message = f"You have voted for: " + game.player_array[int(msg.split(" ")[1])].name
                 conn.send(message.encode(FORMAT))
-                if len(game.guesses) == 4:
+                if len(game.remove_choices) == 4:
                     game.remove_player(1)
                     
+            # Round Two of voting out a player
             if msg.split()[0] == "VOTE2":
-                game.guesses.append(msg.split(" ")[1])
-                if len(game.guesses) == 4:
+                game.remove_choices.append(int(msg.split(" ")[1]))
+                message = f"You have voted for: " + game.player_array[int(msg.split(" ")[1])].name
+                conn.send(message.encode(FORMAT))
+                if len(game.remove_choices) == 4:
                     game.remove_player(2)
             
             if msg == DISCONNECT_MESSAGE:
@@ -50,6 +57,10 @@ def start():
     
     server.listen()
     print(f"[LISTENING] Server is listening on {SERVER}\n")
+
+    for i in range (4):
+        subprocess.Popen(['start', 'python', 'client.py'], shell=True)
+
     while True:
         conn, addr = server.accept()
         clients.append(conn)
@@ -63,7 +74,6 @@ def start():
 
 
 # =================== GAME SHIT ======================
-
 
 class Player:
     def __init__(self, name):
@@ -95,7 +105,7 @@ class GoldenBalls:
         self.balls_in_play = ['KILLER', 'KILLER', 'KILLER', 'KILLER'] + (self.bank.select_balls(12))
         random.shuffle(self.balls_in_play)
         self.total = 0
-        self.guesses = []
+        self.remove_choices = defaultdict(int)
         
     def concat(self, list):
         message = ""
@@ -178,12 +188,6 @@ class GoldenBalls:
     
     def remove_player(self, round):
         global clients
-
-        current = 0
-        for guess in self.guesses:
-            guess = int(guess)
-            if guess > current:
-                current = guess
                 
         self.player_array.remove(self.player_array[current])
         clients.remove(clients[current])
@@ -191,7 +195,7 @@ class GoldenBalls:
         if round == 1:
             self.round_two()
         if round == 2:
-            self.bin_or_win
+            self.bin_or_win()
                 
     
     def repopulate(self):
